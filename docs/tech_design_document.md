@@ -15,66 +15,61 @@
 ```mermaid
 sequenceDiagram
     participant GH as GitHub Actions
-    participant WH as Webhook Handler
-    participant API as FastAPI
-    participant DB as Database
-    participant W as Worker
-    participant AE as Alert Engine
-    participant F as Frontend
-    participant S as Slack/Email
+    participant CF as Cloudflared Tunnel
+    participant API as FastAPI Backend
+    participant DB as SQLite Database
+    participant SMTP as SMTP Server
+    participant EMAIL as Email Recipients
+    participant DASH as Dashboard Frontend
 
-    GH->>WH: Workflow completion
-    WH->>API: Process webhook
-    API->>DB: Store run data
-    API->>AE: Check alert conditions
-    AE->>S: Send notifications
+    Note over GH,EMAIL: Real CI/CD Pipeline Flow
+    GH->>CF: Webhook: Workflow completed
+    CF->>API: Forward webhook request
+    API->>API: Authenticate request (Bearer token)
+    API->>DB: Store build data
     
-    W->>API: Poll for updates
-    API->>DB: Fetch pipeline status
-    W->>DB: Update metrics
+    alt Build Failed
+        API->>SMTP: Send failure alert
+        SMTP->>EMAIL: Deliver notification
+    end
     
-    F->>API: Dashboard requests
-    API->>DB: Query data
-    API->>F: Return JSON
+    DASH->>API: Request dashboard data
+    API->>DB: Query build history
+    DB->>API: Return results
+    API->>DASH: JSON response with metrics
 ```
 
 ### Container Architecture
 ```mermaid
 graph TB
-    subgraph "Frontend Layer"
-        F[React SPA]
+    subgraph "External Services"
+        GH[GitHub Actions<br/>Workflow Runs]
+        GMAIL[Gmail SMTP<br/>gopalakrishnan.kuppan@gmail.com]
     end
     
-    subgraph "API Layer"
-        API[FastAPI]
-        WH[Webhook Handler]
+    subgraph "Public Tunnel"
+        CF[Cloudflared Tunnel<br/>hash-classroom-polls-itself.trycloudflare.com]
     end
     
-    subgraph "Data Layer"
-        DB[(SQLite/PostgreSQL)]
-        CACHE[(Redis)]
+    subgraph "Local Development"
+        API[FastAPI Backend<br/>localhost:8000]
+        DB[(SQLite Database<br/>data.db)]
+        FRONTEND[Frontend Dashboard<br/>HTML/CSS/JS]
     end
     
-    subgraph "Background Services"
-        W[Worker]
-        AE[Alert Engine]
+    subgraph "Security"
+        AUTH[Bearer Token Auth<br/>c1b4813cac3d12687...]
+        SECRETS[Encrypted Secrets<br/>OpenSSL + secret_manager.py]
     end
     
-    subgraph "External"
-        GH[GitHub Actions]
-        SL[Slack]
-        EM[SMTP]
-    end
-    
-    F --> API
-    GH --> WH
-    WH --> API
-    API --> DB
-    API --> CACHE
-    W --> API
-    W --> DB
-    AE --> SL
-    AE --> EM
+    GH -->|Webhook POST| CF
+    CF -->|Forward| API
+    API -->|Store builds| DB
+    API -->|Query data| DB
+    API -->|Send alerts| GMAIL
+    FRONTEND -->|API calls| API
+    API -->|Authenticate| AUTH
+    API -->|Decrypt secrets| SECRETS
 ```
 
 ## 2. API Design
@@ -127,13 +122,13 @@ graph TB
       "run_number": 42,
       "status": "success",
       "conclusion": "success",
-      "start_time": "2024-01-15T10:30:00Z",
+      "start_time": "2025-08-25T10:30:00Z",
       "duration": 180,
       "commit_hash": "abc123",
       "commit_message": "feat: add dashboard",
       "author": "john.doe",
       "run_url": "https://github.com/...",
-      "created_at": "2024-01-15T10:30:00Z"
+      "created_at": "2025-08-25T10:30:00Z"
     }
   ],
   "pagination": {
@@ -161,8 +156,8 @@ graph TB
   "run_number": 42,
   "status": "success",
   "conclusion": "success",
-  "start_time": "2024-01-15T10:30:00Z",
-  "end_time": "2024-01-15T10:33:00Z",
+  "start_time": "2025-08-25T10:30:00Z",
+  "end_time": "2025-08-25T10:33:00Z",
   "duration": 180,
   "commit_hash": "abc123",
   "commit_message": "feat: add dashboard",
@@ -257,7 +252,7 @@ graph TB
       "issue": "Value must be between 1 and 100"
     }
   },
-  "timestamp": "2024-01-15T10:30:00Z",
+  "timestamp": "2025-08-25T10:30:00Z",
   "request_id": "req_abc123"
 }
 ```
@@ -444,12 +439,12 @@ async def send_email_alert(alert: Alert, pipeline: Pipeline):
 ┌─────────────────────────────────────────────────────────────────┐
 │ Workflow Run Logs - Frontend CI #42                            │
 ├─────────────────────────────────────────────────────────────────┤
-│ 2024-01-15 10:30:00 INFO  Starting workflow                   │
-│ 2024-01-15 10:30:05 INFO  Checking out code                  │
-│ 2024-01-15 10:30:10 INFO  Installing dependencies            │
-│ 2024-01-15 10:31:00 INFO  Running tests                      │
-│ 2024-01-15 10:32:00 INFO  Building application              │
-│ 2024-01-15 10:33:00 INFO  Workflow completed successfully   │
+│ 2025-08-25 10:30:00 INFO  Starting workflow                   │
+│ 2025-08-25 10:30:05 INFO  Checking out code                  │
+│ 2025-08-25 10:30:10 INFO  Installing dependencies            │
+│ 2025-08-25 10:31:00 INFO  Running tests                      │
+│ 2025-08-25 10:32:00 INFO  Building application              │
+│ 2025-08-25 10:33:00 INFO  Workflow completed successfully   │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
