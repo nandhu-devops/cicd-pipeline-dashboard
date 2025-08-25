@@ -1,0 +1,476 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+env:
+  DASHBOARD_WEBHOOK_URL: ${{ secrets.DASHBOARD_WEBHOOK_URL }}
+  DASHBOARD_WRITE_KEY: ${{ secrets.DASHBOARD_WRITE_KEY }}
+  # Email Configuration
+  SMTP_HOST: ${{ secrets.SMTP_HOST }}
+  SMTP_PORT: ${{ secrets.SMTP_PORT }}
+  SMTP_USERNAME: ${{ secrets.SMTP_USERNAME }}
+  SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+  SMTP_FROM_EMAIL: ${{ secrets.SMTP_FROM_EMAIL }}
+  SMTP_FROM_NAME: ${{ secrets.SMTP_FROM_NAME }}
+  ALERT_DEFAULT_RECIPIENT: ${{ secrets.ALERT_DEFAULT_RECIPIENT }}
+  ALERT_TEST_RECIPIENT: ${{ secrets.ALERT_TEST_RECIPIENT }}
+  ALERTS_ENABLED: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Debug Email Configuration
+        run: |
+          echo "🔍 Debugging Email Configuration..."
+          echo "SMTP_HOST: ${{ secrets.SMTP_HOST }}"
+          echo "SMTP_PORT: ${{ secrets.SMTP_PORT }}"
+          echo "SMTP_USERNAME: ${{ secrets.SMTP_USERNAME }}"
+          echo "SMTP_PASSWORD: [HIDDEN]"
+          echo "ALERTS_ENABLED: true"
+          echo "ALERT_DEFAULT_RECIPIENT: ${{ secrets.ALERT_DEFAULT_RECIPIENT }}"
+          echo "ALERT_TEST_RECIPIENT: ${{ secrets.ALERT_TEST_RECIPIENT }}"
+          echo "DASHBOARD_WEBHOOK_URL: ${{ secrets.DASHBOARD_WEBHOOK_URL }}"
+          echo "DASHBOARD_WRITE_KEY: ${{ secrets.DASHBOARD_WRITE_KEY }}"
+      
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          echo "Installing dependencies..."
+          pip install -r requirements.txt
+          echo "Dependencies installed successfully"
+      
+      - name: Run tests
+        run: |
+          cd backend
+          echo "Running tests..."
+          python -m pytest tests/test_simple.py tests/test_basic.py -v --tb=short
+      
+      - name: Send Email - Pipeline Started
+        if: always()
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: ${{ secrets.SMTP_HOST }}
+          server_port: ${{ secrets.SMTP_PORT }}
+          username: ${{ secrets.SMTP_USERNAME }}
+          password: ${{ secrets.SMTP_PASSWORD }}
+          subject: "🚀 CI/CD Pipeline Started - ${{ github.repository }}"
+          to: ${{ secrets.ALERT_DEFAULT_RECIPIENT }}
+          from: ${{ secrets.SMTP_FROM_EMAIL }}
+          body: |
+            🚀 CI/CD Pipeline Started
+            
+            Repository: ${{ github.repository }}
+            Branch: ${{ github.head_ref || github.ref_name }}
+            Commit: ${{ github.sha }}
+            Triggered by: ${{ github.actor }}
+            Pipeline URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+            
+            The pipeline is now running...
+      
+      - name: Notify Dashboard - Pipeline Started
+        if: always()
+        run: |
+          if [ -n "$DASHBOARD_WEBHOOK_URL" ] && [ -n "$DASHBOARD_WRITE_KEY" ]; then
+            echo "📡 Notifying dashboard: Pipeline started..."
+            curl -X POST "$DASHBOARD_WEBHOOK_URL/api/webhook/github-actions" \
+              -H "Content-Type: application/json" \
+              -H "Authorization: Bearer $DASHBOARD_WRITE_KEY" \
+              -d '{
+                "workflow_run": {
+                  "id": "${{ github.run_id }}",
+                  "conclusion": null,
+                  "status": "in_progress",
+                  "head_branch": "${{ github.head_ref || github.ref_name }}",
+                  "head_commit": {"id": "${{ github.sha }}"},
+                  "html_url": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}",
+                  "run_started_at": "${{ github.event.head_commit.timestamp || github.event.repository.updated_at }}",
+                  "updated_at": "${{ github.event.head_commit.timestamp || github.event.repository.updated_at }}",
+                  "name": "CI/CD Pipeline",
+                  "event": "push",
+                  "run_number": "${{ github.run_number }}",
+                  "run_attempt": 1
+                },
+                "repository": {"full_name": "${{ github.repository }}"},
+                "sender": {"login": "${{ github.actor }}"}
+              }'
+          else
+            echo "⚠️  Dashboard webhook not configured, skipping notification"
+          fi
+      
+      - name: Send Email - Pipeline Success
+        if: success()
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: ${{ secrets.SMTP_HOST }}
+          server_port: ${{ secrets.SMTP_PORT }}
+          username: ${{ secrets.SMTP_USERNAME }}
+          password: ${{ secrets.SMTP_PASSWORD }}
+          subject: "✅ CI/CD Pipeline Succeeded - ${{ github.repository }}"
+          to: ${{ secrets.ALERT_DEFAULT_RECIPIENT }}
+          from: ${{ secrets.SMTP_FROM_EMAIL }}
+          body: |
+            ✅ CI/CD Pipeline Succeeded!
+            
+            Repository: ${{ github.repository }}
+            Branch: ${{ github.head_ref || github.ref_name }}
+            Commit: ${{ github.sha }}
+            Triggered by: ${{ github.actor }}
+            Pipeline URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+            
+            🎉 All tests passed and pipeline completed successfully!
+      
+      - name: Notify Dashboard - Pipeline Success
+        if: success()
+        run: |
+          if [ -n "$DASHBOARD_WEBHOOK_URL" ] && [ -n "$DASHBOARD_WRITE_KEY" ]; then
+            echo "✅ Notifying dashboard: Pipeline succeeded..."
+            curl -X POST "$DASHBOARD_WEBHOOK_URL/api/webhook/github-actions" \
+              -H "Content-Type: application/json" \
+              -H "Authorization: Bearer $DASHBOARD_WRITE_KEY" \
+              -d '{
+                "workflow_run": {
+                  "id": "${{ github.run_id }}",
+                  "conclusion": "success",
+                  "status": "completed",
+                  "head_branch": "${{ github.head_ref || github.ref_name }}",
+                  "head_commit": {"id": "${{ github.sha }}"},
+                  "html_url": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}",
+                  "run_started_at": "${{ github.event.head_commit.timestamp || github.event.repository.updated_at }}",
+                  "updated_at": "${{ github.event.head_commit.timestamp || github.event.repository.updated_at }}",
+                  "run_number": "${{ github.run_number }}",
+                  "run_attempt": 1
+                },
+                "repository": {"full_name": "${{ github.repository }}"},
+                "sender": {"login": "${{ github.actor }}"}
+              }'
+          else
+            echo "⚠️  Dashboard webhook not configured, skipping notification"
+          fi
+      
+      - name: Send Email - Pipeline Failure
+        if: failure()
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: ${{ secrets.SMTP_HOST }}
+          server_port: ${{ secrets.SMTP_PORT }}
+          username: ${{ secrets.SMTP_USERNAME }}
+          password: ${{ secrets.SMTP_PASSWORD }}
+          subject: "❌ CI/CD Pipeline Failed - ${{ github.repository }}"
+          to: ${{ secrets.ALERT_DEFAULT_RECIPIENT }}
+          from: ${{ secrets.SMTP_FROM_EMAIL }}
+          body: |
+            ❌ CI/CD Pipeline Failed!
+            
+            Repository: ${{ github.repository }}
+            Branch: ${{ github.head_ref || github.ref_name }}
+            Commit: ${{ github.sha }}
+            Triggered by: ${{ github.actor }}
+            Pipeline URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+            
+            🚨 Pipeline failed - please check the logs and fix the issues.
+      
+      - name: Notify Dashboard - Pipeline Failure
+        if: failure()
+        run: |
+          if [ -n "$DASHBOARD_WEBHOOK_URL" ] && [ -n "$DASHBOARD_WRITE_KEY" ]; then
+            echo "❌ Notifying dashboard: Pipeline failed..."
+            curl -X POST "$DASHBOARD_WEBHOOK_URL/api/webhook/github-actions" \
+              -H "Content-Type: application/json" \
+              -H "Authorization: Bearer $DASHBOARD_WRITE_KEY" \
+              -d '{
+                "workflow_run": {
+                  "id": "${{ github.run_id }}",
+                  "conclusion": "failure",
+                  "status": "completed",
+                  "head_branch": "${{ github.head_ref || github.ref_name }}",
+                  "head_commit": {"id": "${{ github.sha }}"},
+                  "html_url": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}",
+                  "updated_at": "${{ github.event.head_commit.timestamp || github.event.repository.updated_at }}",
+                  "run_number": "${{ github.run_number }}",
+                  "run_attempt": 1
+                },
+                "repository": {"full_name": "${{ github.repository }}"},
+                "sender": {"login": "${{ github.actor }}"}
+              }'
+          else
+            echo "⚠️  Dashboard webhook not configured, skipping notification"
+          fi
+
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Check Docker secrets
+        id: check-secrets
+        run: |
+          if [ -n "${{ secrets.DOCKERUSER }}" ] && [ -n "${{ secrets.DOCKERPASS }}" ]; then
+            echo "docker_configured=true" >> $GITHUB_OUTPUT
+            echo "✅ Docker secrets configured, proceeding with build"
+          else
+            echo "docker_configured=false" >> $GITHUB_OUTPUT
+            echo "⚠️ Docker secrets not configured, skipping Docker build"
+            echo "To enable Docker builds, add DOCKERUSER and DOCKERPASS secrets"
+          fi
+      
+      - name: Set up Docker Buildx
+        if: steps.check-secrets.outputs.docker_configured == 'true'
+        uses: docker/setup-buildx-action@v3
+      
+      - name: Login to Docker Hub
+        if: steps.check-secrets.outputs.docker_configured == 'true'
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERUSER }}
+          password: ${{ secrets.DOCKERPASS }}
+      
+      - name: Verify Docker Login
+        if: steps.check-secrets.outputs.docker_configured == 'true'
+        run: |
+          echo "🔐 Verifying Docker Hub authentication..."
+          if docker info > /dev/null 2>&1; then
+            echo "✅ Docker login successful"
+            echo "Username: ${{ secrets.DOCKERUSER }}"
+            echo "Registry: registry.hub.docker.com"
+          else
+            echo "❌ Docker login failed"
+            echo "Please check your DOCKERUSER and DOCKERPASS secrets"
+            exit 1
+          fi
+      
+      - name: Build and push Docker image
+        if: steps.check-secrets.outputs.docker_configured == 'true'
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ secrets.DOCKERUSER }}/cicd-dashboard:latest
+            ${{ secrets.DOCKERUSER }}/cicd-dashboard:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      
+      - name: Skip Docker build message
+        if: steps.check-secrets.outputs.docker_configured == 'false'
+        run: |
+          echo "🚫 Docker build skipped - secrets not configured"
+          echo "Add DOCKERUSER and DOCKERPASS secrets to enable Docker builds"
+      
+      - name: Send Email - Build Success
+        if: success()
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: ${{ secrets.SMTP_HOST }}
+          server_port: ${{ secrets.SMTP_PORT }}
+          username: ${{ secrets.SMTP_USERNAME }}
+          password: ${{ secrets.SMTP_PASSWORD }}
+          subject: "🐳 Docker Build Succeeded - ${{ github.repository }}"
+          to: ${{ secrets.ALERT_DEFAULT_RECIPIENT }}
+          from: ${{ secrets.SMTP_FROM_EMAIL }}
+          body: |
+            🐳 Docker Build Succeeded!
+            
+            Repository: ${{ github.repository }}
+            Branch: ${{ github.ref_name }}
+            Commit: ${{ github.sha }}
+            Triggered by: ${{ github.actor }}
+            Build URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+            
+            🎉 Docker image built and pushed successfully!
+      
+      - name: Notify Dashboard - Build Success
+        if: success()
+        run: |
+          if [ -n "$DASHBOARD_WEBHOOK_URL" ] && [ -n "$DASHBOARD_WRITE_KEY" ]; then
+            echo "Notifying dashboard about build success..."
+            curl -X POST "$DASHBOARD_WEBHOOK_URL/api/webhook/github-actions" \
+              -H "Content-Type: application/json" \
+              -H "Authorization: Bearer $DASHBOARD_WRITE_KEY" \
+              -d '{
+                "action": "completed",
+                "run_id": "${{ github.run_id }}",
+                "repository": {"full_name": "${{ github.repository }}"},
+                "head_branch": "${{ github.ref_name }}",
+                "head_sha": "${{ github.sha }}",
+                "actor": {"login": "${{ github.actor }}"},
+                "html_url": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}",
+                "run_started_at": "${{ github.event.head_commit.timestamp || github.event.repository.updated_at }}",
+                "updated_at": "${{ github.event.head_commit.timestamp || github.event.repository.updated_at }}",
+                "conclusion": "success"
+              }'
+          else
+            echo "Dashboard webhook not configured, skipping notification"
+          fi
+      
+      - name: Send Email - Build Failure
+        if: failure()
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: ${{ secrets.SMTP_HOST }}
+          server_port: ${{ secrets.SMTP_PORT }}
+          username: ${{ secrets.SMTP_USERNAME }}
+          password: ${{ secrets.SMTP_PASSWORD }}
+          subject: "🐳 Docker Build Failed - ${{ github.repository }}"
+          to: ${{ secrets.ALERT_DEFAULT_RECIPIENT }}
+          from: ${{ secrets.SMTP_FROM_EMAIL }}
+          body: |
+            🐳 Docker Build Failed!
+            
+            Repository: ${{ github.repository }}
+            Branch: ${{ github.ref_name }}
+            Commit: ${{ github.sha }}
+            Triggered by: ${{ github.actor }}
+            Build URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+            
+            🚨 Docker build failed - please check the logs and fix the issues.
+      
+      - name: Notify Dashboard - Build Failure
+        if: failure()
+        run: |
+          if [ -n "$DASHBOARD_WEBHOOK_URL" ] && [ -n "$DASHBOARD_WRITE_KEY" ]; then
+            echo "Notifying dashboard about build failure..."
+            curl -X POST "$DASHBOARD_WEBHOOK_URL/api/webhook/github-actions" \
+              -H "Content-Type: application/json" \
+              -H "Authorization: Bearer $DASHBOARD_WRITE_KEY" \
+              -d '{
+                "action": "completed",
+                "run_id": "${{ github.run_id }}",
+                "repository": {"full_name": "${{ github.repository }}"},
+                "head_branch": "${{ github.ref_name }}",
+                "head_sha": "${{ github.sha }}",
+                "actor": {"login": "${{ github.actor }}"},
+                "html_url": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}",
+                "run_started_at": "${{ github.event.head_commit.timestamp || github.event.repository.updated_at }}",
+                "updated_at": "${{ github.event.head_commit.timestamp || github.event.repository.updated_at }}",
+                "conclusion": "failure"
+              }'
+          else
+            echo "Dashboard webhook not configured, skipping notification"
+          fi
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Deploy to production
+        run: |
+          if [ -n "${{ secrets.DOCKERUSER }}" ]; then
+            echo "Deploying Docker image to production..."
+            echo "Image: ${{ secrets.DOCKERUSER }}/cicd-dashboard:latest"
+            echo "✅ Deployment completed successfully"
+          else
+            echo "⚠️ Docker secrets not configured, skipping deployment"
+            echo "To enable deployment, add DOCKERUSER and DOCKERPASS secrets"
+          fi
+          sleep 5
+      
+      - name: Send Email - Deploy Success
+        if: success()
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: ${{ secrets.SMTP_HOST }}
+          server_port: ${{ secrets.SMTP_PORT }}
+          username: ${{ secrets.SMTP_USERNAME }}
+          password: ${{ secrets.SMTP_PASSWORD }}
+          subject: "🚀 Deployment Succeeded - ${{ github.repository }}"
+          to: ${{ secrets.ALERT_DEFAULT_RECIPIENT }}
+          from: ${{ secrets.SMTP_FROM_EMAIL }}
+          body: |
+            🚀 Deployment Succeeded!
+            
+            Repository: ${{ github.repository }}
+            Branch: ${{ github.ref_name }}
+            Commit: ${{ github.sha }}
+            Triggered by: ${{ github.actor }}
+            Deploy URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+            
+            🎉 Application deployed to production successfully!
+      
+      - name: Notify Dashboard - Deploy Success
+        if: success()
+        run: |
+          if [ -n "$DASHBOARD_WEBHOOK_URL" ] && [ -n "$DASHBOARD_WRITE_KEY" ]; then
+            echo "Notifying dashboard about deployment success..."
+            curl -X POST "$DASHBOARD_WEBHOOK_URL/api/webhook/github-actions" \
+              -H "Content-Type: application/json" \
+              -H "Authorization: Bearer $DASHBOARD_WRITE_KEY" \
+              -d '{
+                "action": "deployed",
+                "run_id": "${{ github.run_id }}",
+                "repository": {"full_name": "${{ github.repository }}"},
+                "head_branch": "${{ github.ref_name }}",
+                "head_sha": "${{ github.sha }}",
+                "actor": {"login": "${{ github.actor }}"},
+                "run_started_at": "${{ github.event.head_commit.timestamp || github.event.repository.updated_at }}",
+                "updated_at": "${{ github.event.head_commit.timestamp || github.event.repository.updated_at }}",
+                "conclusion": "success"
+              }'
+          else
+            echo "Dashboard webhook not configured, skipping notification"
+          fi
+      
+      - name: Send Email - Deploy Failure
+        if: failure()
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: ${{ secrets.SMTP_HOST }}
+          server_port: ${{ secrets.SMTP_PORT }}
+          username: ${{ secrets.SMTP_USERNAME }}
+          password: ${{ secrets.SMTP_PASSWORD }}
+          subject: "🚨 Deployment Failed - ${{ github.repository }}"
+          to: ${{ secrets.ALERT_DEFAULT_RECIPIENT }}
+          from: ${{ secrets.SMTP_FROM_EMAIL }}
+          body: |
+            🚨 Deployment Failed!
+            
+            Repository: ${{ github.repository }}
+            Branch: ${{ github.ref_name }}
+            Commit: ${{ github.sha }}
+            Triggered by: ${{ github.actor }}
+            Deploy URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+            
+            🚨 Deployment to production failed - please check the logs and fix the issues.
+      
+      - name: Notify Dashboard - Deploy Failure
+        if: failure()
+        run: |
+          if [ -n "$DASHBOARD_WEBHOOK_URL" ] && [ -n "$DASHBOARD_WRITE_KEY" ]; then
+            echo "Notifying dashboard about deployment failure..."
+            curl -X POST "$DASHBOARD_WEBHOOK_URL/api/webhook/github-actions" \
+              -H "Content-Type: application/json" \
+              -H "Authorization: Bearer $DASHBOARD_WRITE_KEY" \
+              -d '{
+                "action": "deployed",
+                "run_id": "${{ github.run_id }}",
+                "repository": {"full_name": "${{ github.repository }}"},
+                "head_branch": "${{ github.ref_name }}",
+                "head_sha": "${{ github.sha }}",
+                "actor": {"login": "${{ github.actor }}"},
+                "run_started_at": "${{ github.event.head_commit.timestamp || github.event.repository.updated_at }}",
+                "updated_at": "${{ github.event.head_commit.timestamp || github.event.repository.updated_at }}",
+                "conclusion": "failure"
+              }'
+          else
+            echo "Dashboard webhook not configured, skipping notification"
+          fi

@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  cicd-dashboard:
+    build: .
+    ports:
+      - "8080:80"      # Frontend
+      - "8000:8000"    # Backend API
+    environment:
+      - DATABASE_URL=sqlite+aiosqlite:///./data.db
+      - DEBUG=true
+      - ALERTS_ENABLED=true
+      - SLACK_WEBHOOK_URL=${SLACK_WEBHOOK_URL:-}
+      - SLACK_CHANNEL=${SLACK_CHANNEL:-#general}
+      - SMTP_HOST=${SMTP_HOST:-}
+      - SMTP_PORT=${SMTP_PORT:-587}
+      - SMTP_USERNAME=${SMTP_USERNAME:-}
+      - SMTP_PASSWORD=${SMTP_PASSWORD:-}
+      - SMTP_FROM_EMAIL=${SMTP_FROM_EMAIL:-gopalakrishnan.kuppan@gmail.com}
+      - SMTP_FROM_NAME=${SMTP_FROM_NAME:-CI/CD Dashboard}
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Optional: PostgreSQL for production
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_DB=cicd_dashboard
+      - POSTGRES_USER=cicd_user
+      - POSTGRES_PASSWORD=talentica@123
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    profiles:
+      - production
+
+volumes:
+  postgres_data:

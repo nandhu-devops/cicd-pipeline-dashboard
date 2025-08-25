@@ -1,0 +1,41 @@
+# Security - Never commit these files
+.env
+.secrets/
+.encryption_key
+
+# Logs and temporary files  
+*.log
+nohup.out
+tunnel.log
+server.log
+ngrok.log
+
+# Database files
+data.db
+*.sqlite
+*.db
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Node modules (if any)
+node_modules/
+
+# Build artifacts
+build/
+dist/

@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CI/CD Health Dashboard</title>
+    <link rel="stylesheet" href="/static/styles.css">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚀</text></svg>">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <h1>🚀 CI/CD Health Dashboard</h1>
+                <div class="header-actions">
+                    <button id="refreshBtn" class="btn btn-primary">
+                        <span class="btn-icon">🔄</span>
+                        Refresh
+                    </button>
+                    <div class="last-updated" id="lastUpdated">
+                        Last updated: Never
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Loading State -->
+        <div id="loadingState" class="loading-state">
+            <div class="spinner"></div>
+            <p>Loading dashboard data...</p>
+        </div>
+
+        <!-- Error State -->
+        <div id="errorState" class="error-state" style="display: none;">
+            <div class="error-content">
+                <h2>❌ Failed to Load Dashboard</h2>
+                <p id="errorMessage">An error occurred while loading the dashboard.</p>
+                <div class="error-actions">
+                    <button onclick="loadDashboard()" class="btn btn-primary">Try Again</button>
+                    <button onclick="showOfflineMode()" class="btn btn-secondary">Use Offline Mode</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dashboard Content -->
+        <div id="dashboardContent" class="dashboard-content" style="display: none;">
+            <!-- Summary Cards -->
+            <div class="summary-cards">
+                <div class="card summary-card">
+                    <div class="card-header">
+                        <h3>Success Rate</h3>
+                        <div class="card-icon">✅</div>
+                    </div>
+                    <div class="metric-value" id="successRate">-</div>
+                    <div class="metric-label">Builds completed successfully</div>
+                </div>
+                
+                <div class="card summary-card">
+                    <div class="card-header">
+                        <h3>Failure Rate</h3>
+                        <div class="card-icon">❌</div>
+                    </div>
+                    <div class="metric-value" id="failureRate">-</div>
+                    <div class="metric-label">Builds that failed</div>
+                </div>
+                
+                <div class="card summary-card">
+                    <div class="card-header">
+                        <h3>Avg Build Time</h3>
+                        <div class="card-icon">⏱️</div>
+                    </div>
+                    <div class="metric-value" id="avgBuildTime">-</div>
+                    <div class="metric-label">Average completion time</div>
+                    </div>
+                
+                <div class="card summary-card">
+                    <div class="card-header">
+                        <h3>Last Build Status</h3>
+                        <div class="card-icon">🔍</div>
+                    </div>
+                    <div class="metric-value" id="lastBuildStatus">-</div>
+                    <div class="metric-label">Most recent build result</div>
+                </div>
+            </div>
+
+            <!-- Builds Table Section -->
+            <div class="card builds-section">
+                <div class="section-header">
+                    <h2>📊 Recent Builds</h2>
+                    <div class="section-actions">
+                        <div class="filter-controls">
+                            <select id="statusFilter" class="filter-select">
+                                <option value="">All Statuses</option>
+                                <option value="success">Success</option>
+                                <option value="failed">Failed</option>
+                                <option value="running">Running</option>
+                                <option value="queued">Queued</option>
+                            </select>
+                        </div>
+                        <div class="view-controls">
+                            <button id="refreshBuildsBtn" class="btn btn-secondary btn-sm">
+                                <span class="btn-icon">🔄</span>
+                                Refresh
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="table-container">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Status</th>
+                                <th>Build ID</th>
+                                <th>Branch</th>
+                                <th>Duration</th>
+                                <th>Started</th>
+                                <th>Provider</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="buildsTableBody">
+                            <!-- Builds will be populated here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Alert Configuration Section -->
+            <div class="card alerts-section">
+                <div class="section-header">
+                    <h2>🔔 Alert Configuration</h2>
+                    <button id="testAlertBtn" class="btn btn-primary btn-sm">Test Alert</button>
+                </div>
+                
+                <div class="alert-config">
+                    <div class="alert-item">
+                        <div class="alert-info">
+                            <h4>📧 Email Alerts</h4>
+                            <p>Receive notifications when builds fail</p>
+                        </div>
+                        <div class="alert-status">
+                            <span class="status-badge status-success">Active</span>
+                        </div>
+                    </div>
+                    
+                    <div class="alert-item">
+                        <div class="alert-info">
+                            <h4>💬 Slack Integration</h4>
+                            <p>Send alerts to Slack channels</p>
+                        </div>
+                        <div class="alert-status">
+                            <span class="status-badge status-unknown">Not Configured</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/dashboard.js"></script>
+</body>
+</html>

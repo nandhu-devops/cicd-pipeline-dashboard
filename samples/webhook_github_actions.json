@@ -1,0 +1,113 @@
+{
+  "workflow_run": {
+    "id": 123456789,
+    "name": "CI/CD Pipeline",
+    "node_id": "MDg6V29ya2Zsb3dSdW4xMjM0NTY3ODk=",
+    "head_branch": "feature/new-dashboard",
+    "head_sha": "abc123def456789abcdef123456789abcdef1234",
+    "run_number": 42,
+    "event": "pull_request",
+    "status": "completed",
+    "conclusion": "success",
+    "workflow_id": 987654321,
+    "url": "https://api.github.com/repos/myorg/myapp/actions/runs/123456789",
+    "html_url": "https://github.com/myorg/myapp/actions/runs/123456789",
+    "pull_requests": [
+      {
+        "url": "https://api.github.com/repos/myorg/myapp/pulls/123",
+        "id": 123,
+        "number": 123,
+        "state": "open",
+        "title": "Add new dashboard component",
+        "user": {
+          "login": "johndoe",
+          "id": 12345
+        }
+      }
+    ],
+    "created_at": "2024-01-15T10:30:00Z",
+    "updated_at": "2024-01-15T10:35:00Z",
+    "run_attempt": 1,
+    "run_started_at": "2024-01-15T10:30:00Z",
+    "triggering_actor": {
+      "login": "johndoe",
+      "id": 12345,
+      "avatar_url": "https://avatars.githubusercontent.com/u/12345?v=4",
+      "type": "User"
+    },
+    "jobs_url": "https://api.github.com/repos/myorg/myapp/actions/runs/123456789/jobs",
+    "logs_url": "https://api.github.com/repos/myorg/myapp/actions/runs/123456789/logs",
+    "check_suite_url": "https://api.github.com/repos/myorg/myapp/check-suites/123456789",
+    "artifacts_url": "https://api.github.com/repos/myorg/myapp/actions/runs/123456789/artifacts",
+    "cancel_url": "https://api.github.com/repos/myorg/myapp/actions/runs/123456789/cancel",
+    "rerun_url": "https://api.github.com/repos/myorg/myapp/actions/runs/123456789/rerun",
+    "workflow_url": "https://api.github.com/repos/myorg/myapp/actions/workflows/987654321",
+    "head_commit": {
+      "id": "abc123def456789abcdef123456789abcdef1234",
+      "tree_id": "def456ghi789abcdef123456789abcdef123456",
+      "message": "feat: add new dashboard component with improved UX\n\n- Add responsive design\n- Implement dark mode toggle\n- Add performance metrics\n- Fix accessibility issues",
+      "timestamp": "2024-01-15T10:25:00Z",
+      "author": {
+        "name": "John Doe",
+        "email": "john.doe@company.com"
+      },
+      "committer": {
+        "name": "John Doe",
+        "email": "john.doe@company.com"
+      }
+    },
+    "repository": {
+      "id": 123456789,
+      "node_id": "MDEwOlJlcG9zaXRvcnkxMjM0NTY3ODk=",
+      "name": "myapp",
+      "full_name": "myorg/myapp",
+      "private": false,
+      "owner": {
+        "login": "myorg",
+        "id": 12345,
+        "type": "Organization"
+      }
+    },
+    "head_repository": {
+      "id": 123456789,
+      "node_id": "MDEwOlJlcG9zaXRvcnkxMjM0NTY3ODk=",
+      "name": "myapp",
+      "full_name": "myorg/myapp",
+      "private": false,
+      "owner": {
+        "login": "myorg",
+        "id": 12345,
+        "type": "Organization"
+      }
+    }
+  },
+  "workflow": {
+    "id": 987654321,
+    "node_id": "MDg6V29ya2Zsb3cxMjM0NTY3ODk=",
+    "name": "CI/CD Pipeline",
+    "path": ".github/workflows/ci.yml",
+    "state": "active",
+    "created_at": "2024-01-01T00:00:00Z",
+    "updated_at": "2024-01-15T10:30:00Z",
+    "url": "https://api.github.com/repos/myorg/myapp/actions/workflows/987654321",
+    "html_url": "https://github.com/myorg/myapp/actions/workflows/ci.yml",
+    "badge_url": "https://github.com/myorg/myapp/workflows/CI%20Pipeline/badge.svg"
+  },
+  "repository": {
+    "id": 123456789,
+    "node_id": "MDEwOlJlcG9zaXRvcnkxMjM0NTY3ODk=",
+    "name": "myapp",
+    "full_name": "myorg/myapp",
+    "private": false,
+    "owner": {
+      "login": "myorg",
+      "id": 12345,
+      "type": "Organization"
+    }
+  },
+  "sender": {
+    "login": "johndoe",
+    "id": 12345,
+    "type": "User"
+  }
+}

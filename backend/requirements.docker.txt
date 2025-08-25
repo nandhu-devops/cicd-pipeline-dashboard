@@ -1,0 +1,16 @@
+# Core Framework - minimal versions for Alpine compatibility
+fastapi==0.104.1
+uvicorn==0.24.0
+
+# Database - use pure Python alternatives where possible
+sqlalchemy==2.0.23
+
+# HTTP Client - minimal versions
+aiohttp==3.9.1
+
+# Environment and Configuration
+python-dotenv==1.0.0
+pydantic==2.5.0
+
+# Utilities
+python-multipart==0.0.6

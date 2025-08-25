@@ -1,0 +1,76 @@
+version: '3.8'
+
+services:
+  # Backend API service
+  backend:
+    build:
+      context: ..
+      dockerfile: ops/docker/backend.Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=${DATABASE_URL:-sqlite+aiosqlite:///./data.db}
+      - API_HOST=0.0.0.0
+      - API_PORT=8000
+      - DEBUG=false
+      - ALERTS_ENABLED=${ALERTS_ENABLED:-true}
+      - SMTP_HOST=${SMTP_HOST}
+      - SMTP_PORT=${SMTP_PORT:-587}
+      - SMTP_USERNAME=${SMTP_USERNAME}
+      - SMTP_PASSWORD=${SMTP_PASSWORD}
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8000/health', timeout=10)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Frontend service (nginx)
+  frontend:
+    build:
+      context: ..
+      dockerfile: ops/docker/frontend.Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - VITE_API_BASE=${VITE_API_BASE:-http://localhost:8000}
+    depends_on:
+      - backend
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Background worker service
+  worker:
+    build:
+      context: ..
+      dockerfile: ops/docker/worker.Dockerfile
+    environment:
+      - ENABLE_GH=${ENABLE_GH:-true}
+      - ENABLE_JENKINS=${ENABLE_JENKINS:-false}
+      - WORKER_POLL_INTERVAL=${WORKER_POLL_INTERVAL:-60}
+      - WORKER_JITTER_SECONDS=${WORKER_JITTER_SECONDS:-10}
+      - GITHUB_TOKEN=${GITHUB_TOKEN}
+      - GITHUB_REPOS=${GITHUB_REPOS:-nandhu-devops/cicd-pipeline-dashboard}
+      - DASHBOARD_API_URL=http://backend:8000
+      - DASHBOARD_API_KEY=${DASHBOARD_API_KEY}
+    depends_on:
+      - backend
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "pgrep", "-f", "python.*scheduler.py"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  data:
+    driver: local
