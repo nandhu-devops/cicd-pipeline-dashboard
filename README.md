@@ -208,12 +208,6 @@ pytest tests/
 
 This project is licensed under the MIT License - see the LICENSE file for details.
 
-## 🙏 Acknowledgments
-
-- Built with FastAPI and modern Python practices
-- Frontend designed for simplicity and performance
-- Inspired by modern DevOps and SRE practices
-- Designed for real-world CI/CD monitoring needs
 
 ## 📞 Support
 
