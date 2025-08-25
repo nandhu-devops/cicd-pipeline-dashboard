@@ -90,6 +90,12 @@ async function loadBuilds() {
         
         updateBuilds(data.builds || []);
         document.getElementById('total-builds').textContent = data.total || 0;
+        
+        // Update latest commit status if we have builds
+        if (data.builds && data.builds.length > 0) {
+            updateLatestCommitStatus(data.builds[0]);
+        }
+        
         return data;
     } catch (error) {
         console.error('Error loading builds:', error);
@@ -121,7 +127,25 @@ function updateBuilds(builds) {
     
     const buildsHtml = builds.map(build => {
         const statusClass = build.status || 'unknown';
-        const buildTime = build.started_at ? new Date(build.started_at).toLocaleString() : 'Unknown';
+        // Fix timestamp formatting with IST timezone
+        let buildTime = 'Unknown';
+        if (build.started_at) {
+            try {
+                const date = new Date(build.started_at);
+                buildTime = date.toLocaleString('en-IN', {
+                    timeZone: 'Asia/Kolkata',
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit',
+                    timeZoneName: 'short'
+                });
+            } catch (e) {
+                buildTime = build.started_at;
+            }
+        }
         const duration = build.duration_seconds ? `${Math.round(build.duration_seconds)}s` : 'N/A';
         
         return `
@@ -153,9 +177,77 @@ function showError(message) {
     `;
 }
 
-// Update last updated timestamp
+// Update latest commit status section
+function updateLatestCommitStatus(latestBuild) {
+    if (!latestBuild) {
+        // Set loading state if no data
+        document.getElementById('latest-commit-status').textContent = 'No Data';
+        document.getElementById('latest-commit-status').className = 'commit-status-badge loading';
+        return;
+    }
+    
+    // Update status badge
+    const statusBadge = document.getElementById('latest-commit-status');
+    statusBadge.textContent = latestBuild.status || 'Unknown';
+    statusBadge.className = `commit-status-badge ${latestBuild.status || 'loading'}`;
+    
+    // Update build details
+    document.getElementById('latest-build-id').textContent = `#${latestBuild.external_id || latestBuild.id}`;
+    document.getElementById('latest-branch').textContent = latestBuild.branch || 'main';
+    
+    // Format commit SHA (show first 8 characters)
+    const commitSha = latestBuild.commit_sha || 'unknown';
+    document.getElementById('latest-commit-sha').textContent = commitSha.substring(0, 8) + (commitSha.length > 8 ? '...' : '');
+    
+    document.getElementById('latest-triggered-by').textContent = latestBuild.triggered_by || 'Unknown';
+    
+    // Format timestamps in IST
+    let startedTime = 'Unknown';
+    if (latestBuild.started_at) {
+        try {
+            const date = new Date(latestBuild.started_at);
+            startedTime = date.toLocaleString('en-IN', {
+                timeZone: 'Asia/Kolkata',
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                timeZoneName: 'short'
+            });
+        } catch (e) {
+            startedTime = latestBuild.started_at;
+        }
+    }
+    document.getElementById('latest-started-at').textContent = startedTime;
+    
+    // Format duration
+    const duration = latestBuild.duration_seconds 
+        ? `${Math.round(latestBuild.duration_seconds)}s`
+        : 'N/A';
+    document.getElementById('latest-duration').textContent = duration;
+    
+    // Update build URL
+    const buildLink = document.getElementById('latest-build-url');
+    if (latestBuild.url) {
+        buildLink.href = latestBuild.url;
+        buildLink.textContent = 'View on GitHub';
+        buildLink.style.display = 'inline';
+    } else {
+        buildLink.style.display = 'none';
+    }
+}
+
+// Update last updated timestamp in IST
 function updateLastUpdated() {
-    document.getElementById('last-updated').textContent = new Date().toLocaleTimeString();
+    const now = new Date();
+    const timeString = now.toLocaleString('en-IN', {
+        timeZone: 'Asia/Kolkata',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        timeZoneName: 'short'
+    });
+    document.getElementById('last-updated').textContent = timeString;
 }
 
 // Start auto-refresh

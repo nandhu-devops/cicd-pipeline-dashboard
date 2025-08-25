@@ -14,6 +14,48 @@
             <p class="subtitle">Monitor your GitHub Actions in real-time</p>
         </header>
 
+        <!-- Latest Commit Status Section -->
+        <div class="latest-commit-section">
+            <div class="commit-header">
+                <h2>🚀 Latest Commit Status</h2>
+                <div class="commit-status-badge" id="latest-commit-status">Loading...</div>
+            </div>
+            <div class="commit-details">
+                <div class="commit-info">
+                    <div class="commit-item">
+                        <span class="commit-label">📦 Build:</span>
+                        <span id="latest-build-id">#---</span>
+                    </div>
+                    <div class="commit-item">
+                        <span class="commit-label">🌿 Branch:</span>
+                        <span id="latest-branch">---</span>
+                    </div>
+                    <div class="commit-item">
+                        <span class="commit-label">🔗 Commit:</span>
+                        <span id="latest-commit-sha">---</span>
+                    </div>
+                    <div class="commit-item">
+                        <span class="commit-label">👤 Author:</span>
+                        <span id="latest-triggered-by">---</span>
+                    </div>
+                </div>
+                <div class="commit-timing">
+                    <div class="commit-item">
+                        <span class="commit-label">⏰ Started:</span>
+                        <span id="latest-started-at">---</span>
+                    </div>
+                    <div class="commit-item">
+                        <span class="commit-label">⚡ Duration:</span>
+                        <span id="latest-duration">---</span>
+                    </div>
+                    <div class="commit-item">
+                        <span class="commit-label">🔗 View:</span>
+                        <a id="latest-build-url" href="#" target="_blank" class="build-link">GitHub Action</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div class="status-bar">
             <div class="status-item">
                 <span class="label">Status:</span>
