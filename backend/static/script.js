@@ -93,12 +93,7 @@ async function loadBuilds() {
         
         // Update latest commit status if we have builds
         if (data.builds && data.builds.length > 0) {
-            // Skip only the obvious fake build #88888
-            const latestBuild = data.builds.find(build => 
-                build.external_id !== '88888'
-            ) || data.builds[0];
-            
-            updateLatestCommitStatus(latestBuild);
+            updateLatestCommitStatus(data.builds[0]);
         }
         
         return data;

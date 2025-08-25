@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Frontend Test - CI/CD Dashboard</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        button { padding: 10px 15px; margin: 5px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Frontend Test - CI/CD Dashboard</h1>
+    
+    <div class="test-section">
+        <h3>1. File Loading Test</h3>
+        <p>Checking if all required files are accessible:</p>
+        <div id="fileTest"></div>
+    </div>
+    
+    <div class="test-section">
+        <h3>2. JavaScript Functionality Test</h3>
+        <p>Testing core JavaScript functions:</p>
+        <button onclick="testFormatDuration()">Test Duration Formatting</button>
+        <button onclick="testFormatRelativeTime()">Test Time Formatting</button>
+        <button onclick="testStatusBadge()">Test Status Badge</button>
+        <div id="jsTest"></div>
+    </div>
+    
+    <div class="test-section">
+        <h3>3. API Connection Test</h3>
+        <p>Testing backend connectivity:</p>
+        <button onclick="testBackendConnection()">Test Backend</button>
+        <div id="apiTest"></div>
+    </div>
+    
+    <div class="test-section">
+        <h3>4. Mock Data Test</h3>
+        <p>Testing with mock data:</p>
+        <button onclick="testMockData()">Load Mock Data</button>
+        <div id="mockTest"></div>
+    </div>
+
+    <script>
+        // Test file loading
+        function testFileLoading() {
+            const fileTest = document.getElementById('fileTest');
+            const files = ['styles.css', 'dashboard.js'];
+            let allLoaded = true;
+            
+            files.forEach(file => {
+                const link = document.createElement('link');
+                link.rel = 'stylesheet';
+                link.href = file;
+                link.onload = () => {
+                    fileTest.innerHTML += `<div class="success">✅ ${file} loaded successfully</div>`;
+                };
+                link.onerror = () => {
+                    fileTest.innerHTML += `<div class="error">❌ ${file} failed to load</div>`;
+                    allLoaded = false;
+                };
+                document.head.appendChild(link);
+            });
+            
+            return allLoaded;
+        }
+        
+        // Test JavaScript functions
+        function testFormatDuration() {
+            const jsTest = document.getElementById('jsTest');
+            const testCases = [
+                { input: 30, expected: '30s' },
+                { input: 90, expected: '2m' },
+                { input: 3600, expected: '1h' },
+                { input: null, expected: '--' }
+            ];
+            
+            let results = '';
+            testCases.forEach(test => {
+                const result = formatDuration(test.input);
+                const passed = result === test.expected;
+                results += `<div class="${passed ? 'success' : 'error'}">
+                    ${passed ? '✅' : '❌'} ${test.input}s → ${result} (expected: ${test.expected})
+                </div>`;
+            });
+            
+            jsTest.innerHTML = results;
+        }
+        
+        function testFormatRelativeTime() {
+            const jsTest = document.getElementById('jsTest');
+            const now = new Date();
+            const testCases = [
+                { input: now.toISOString(), expected: 'Just now' },
+                { input: new Date(now - 30 * 60 * 1000).toISOString(), expected: '30m ago' },
+                { input: new Date(now - 2 * 60 * 60 * 1000).toISOString(), expected: '2h ago' }
+            ];
+            
+            let results = '';
+            testCases.forEach(test => {
+                const result = formatRelativeTime(test.input);
+                const passed = result.includes(test.expected.split(' ')[0]); // Basic check
+                results += `<div class="${passed ? 'success' : 'error'}">
+                    ${passed ? '✅' : '❌'} ${test.input} → ${result}
+                </div>`;
+            });
+            
+            jsTest.innerHTML = results;
+        }
+        
+        function testStatusBadge() {
+            const jsTest = document.getElementById('jsTest');
+            const testCases = ['success', 'failed', 'running', 'queued'];
+            
+            let results = '';
+            testCases.forEach(status => {
+                const badge = document.createElement('span');
+                badge.className = `status-badge status-${status}`;
+                badge.textContent = status;
+                badge.style.cssText = 'padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin: 5px; display: inline-block;';
+                
+                // Add colors
+                if (status === 'success') badge.style.backgroundColor = '#d4edda';
+                else if (status === 'failed') badge.style.backgroundColor = '#f8d7da';
+                else if (status === 'running') badge.style.backgroundColor = '#fff3cd';
+                else badge.style.backgroundColor = '#e2e3e5';
+                
+                results += `<div>${badge.outerHTML}</div>`;
+            });
+            
+            jsTest.innerHTML = results;
+        }
+        
+        // Test backend connection
+        async function testBackendConnection() {
+            const apiTest = document.getElementById('apiTest');
+            apiTest.innerHTML = '<div>Testing...</div>';
+            
+            try {
+                const response = await fetch('http://localhost:8000/health');
+                if (response.ok) {
+                    const data = await response.json();
+                    apiTest.innerHTML = `<div class="success">✅ Backend connected successfully<br>Response: ${JSON.stringify(data, null, 2)}</div>`;
+                } else {
+                    apiTest.innerHTML = `<div class="error">❌ Backend responded with status: ${response.status}</div>`;
+                }
+            } catch (error) {
+                apiTest.innerHTML = `<div class="error">❌ Backend connection failed: ${error.message}</div>`;
+            }
+        }
+        
+        // Test mock data
+        function testMockData() {
+            const mockTest = document.getElementById('mockTest');
+            
+            const mockMetrics = {
+                window_days: 7,
+                success_rate: 0.85,
+                failure_rate: 0.15,
+                avg_build_time_seconds: 180,
+                last_build_status: "success"
+            };
+            
+            const mockBuilds = [
+                {
+                    id: 1,
+                    external_id: "123456789",
+                    status: "success",
+                    branch: "main",
+                    duration_seconds: 300,
+                    provider_name: "GitHub Actions"
+                },
+                {
+                    id: 2,
+                    external_id: "123456790",
+                    status: "failed",
+                    branch: "feature/new-feature",
+                    duration_seconds: 120,
+                    provider_name: "Jenkins"
+                }
+            ];
+            
+            mockTest.innerHTML = `
+                <div class="success">
+                    <h4>✅ Mock Data Loaded Successfully</h4>
+                    <p><strong>Metrics:</strong> Success Rate: ${(mockMetrics.success_rate * 100).toFixed(1)}%, 
+                    Failure Rate: ${(mockMetrics.failure_rate * 100).toFixed(1)}%</p>
+                    <p><strong>Builds:</strong> ${mockBuilds.length} builds loaded</p>
+                    <ul>
+                        ${mockBuilds.map(build => `<li>#${build.external_id} (${build.status}) - ${build.branch}</li>`).join('')}
+                    </ul>
+                </div>
+            `;
+        }
+        
+        // Helper functions (copied from dashboard.js)
+        function formatDuration(seconds) {
+            if (!seconds) return '--';
+            if (seconds < 60) return `${seconds}s`;
+            if (seconds < 3600) return `${Math.round(seconds / 60)}m`;
+            return `${Math.round(seconds / 3600)}h`;
+        }
+        
+        function formatRelativeTime(dateString) {
+            if (!dateString) return '--';
+            
+            const date = new Date(dateString);
+            const now = new Date();
+            const diffMs = now - date;
+            const diffMins = Math.floor(diffMs / 60000);
+            const diffHours = Math.floor(diffMs / 3600000);
+            const diffDays = Math.floor(diffMs / 86400000);
+            
+            if (diffMins < 1) return 'Just now';
+            if (diffMins < 60) return `${diffMins}m ago`;
+            if (diffHours < 24) return `${diffHours}h ago`;
+            if (diffDays < 7) return `${diffDays}d ago`;
+            
+            return date.toLocaleDateString();
+        }
+        
+        // Run initial tests
+        window.addEventListener('load', function() {
+            testFileLoading();
+        });
+    </script>
+</body>
+</html>
